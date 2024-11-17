@@ -1,6 +1,6 @@
 <script lang="ts">
     import Navbar from '$lib/components/Navbar.svelte';
-    import { quizStore, addQuiz } from '$lib/stores/quizStore';
+    import { quizStore } from '$lib/stores/quizStore';
     import { goto } from '$app/navigation';
     import type { QuizQuestion } from '$lib/types/quiz';
 
@@ -42,7 +42,7 @@
         }
 
         // Add question to a new quiz
-        addQuiz([{
+        quizStore.addQuiz([{
             question: newQuestion.question,
             options: [...newQuestion.options],
             correct: newQuestion.correct
@@ -54,7 +54,6 @@
             options: ["", ""],
             correct: 0
         };
-
         successMessage = "Question added successfully!";
         errorMessage = "";
 

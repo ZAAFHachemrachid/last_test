@@ -1,4 +1,4 @@
-import { writable, type Writable } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type { QuizQuestion } from '../types/quiz';
 
 const initialQuizzes: QuizQuestion[][] = [
@@ -116,24 +116,32 @@ const initialQuizzes: QuizQuestion[][] = [
     ]
 ];
 
-// Define the store type
-export const quizStore: Writable<QuizQuestion[][]> = writable(initialQuizzes);
+function createQuizStore() {
+    const { subscribe, set, update } = writable<QuizQuestion[][]>(initialQuizzes);
 
-// Helper functions with type annotations
-export const addQuiz = (quiz: QuizQuestion[]): void => {
-    quizStore.update((quizzes: QuizQuestion[][]) => [...quizzes, quiz]);
-};
+    function addQuiz(quiz: QuizQuestion[]) {
+        update(quizzes => [...quizzes, quiz]);
+    }
 
-export const updateQuiz = (index: number, quiz: QuizQuestion[]): void => {
-    quizStore.update((quizzes: QuizQuestion[][]) => {
-        const newQuizzes = [...quizzes];
-        newQuizzes[index] = quiz;
-        return newQuizzes;
-    });
-};
+    function updateQuiz(index: number, quiz: QuizQuestion[]) {
+        update(quizzes => {
+            const newQuizzes = [...quizzes];
+            newQuizzes[index] = quiz;
+            return newQuizzes;
+        });
+    }
 
-export const deleteQuiz = (index: number): void => {
-    quizStore.update((quizzes: QuizQuestion[][]) => 
-        quizzes.filter((_, i: number) => i !== index)
-    );
-};
+    function deleteQuiz(index: number) {
+        update(quizzes => quizzes.filter((_, i) => i !== index));
+    }
+
+    return {
+        subscribe,
+        addQuiz,
+        updateQuiz,
+        deleteQuiz,
+        reset: () => set(initialQuizzes)
+    };
+}
+
+export const quizStore = createQuizStore();
