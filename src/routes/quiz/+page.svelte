@@ -4,15 +4,22 @@
     import { goto } from '$app/navigation';
     import Navbar from '$lib/components/Navbar.svelte';
 
+    // Quiz selection state
     let quizzes: QuizQuestion[][] = [];
     let showNameInput = false;
     let userName = '';
     let selectedQuizIndex: number | null = null;
 
+    // Quiz taking state
+    let currentQuestion: number | null = 0;
+    let userAnswers: number[] = [];
+    let questions: QuizQuestion[] = [];
+
     quizStore.subscribe((value) => {
         quizzes = value;
     });
 
+    // Quiz selection functions
     function startQuiz(index: number) {
         if (!userName.trim()) {
             selectedQuizIndex = index;
@@ -33,6 +40,47 @@
             goto(`/quiz/${selectedQuizIndex}`);
         }
     }
+
+    // Quiz taking functions
+    function selectAnswer(optionIndex: number): void {
+        if (currentQuestion !== null) {
+            userAnswers[currentQuestion] = optionIndex;
+        }
+    }
+
+    function nextQuestion(): void {
+        if (currentQuestion !== null) {
+            if (currentQuestion < questions.length - 1) {
+                currentQuestion++;
+            } else {
+                currentQuestion = null; // This will show results
+            }
+        }
+    }
+
+    function previousQuestion(): void {
+        if (currentQuestion !== null && currentQuestion > 0) {
+            currentQuestion--;
+        }
+    }
+
+    function restartQuiz(): void {
+        currentQuestion = 0;
+        userAnswers = new Array(questions.length).fill(null);
+    }
+
+    function getOptionClass(index: number): string {
+        if (currentQuestion === null) return '';
+        
+        if (userAnswers[currentQuestion] === index) {
+            return 'bg-indigo-100 border-indigo-300';
+        } else {
+            return 'border-gray-200 hover:bg-indigo-50 hover:border-indigo-300';
+        }
+    }
+
+    $: score = userAnswers.reduce((acc, answer, index) => 
+        answer === questions[index]?.correct ? acc + 1 : acc, 0);
 </script>
 
 <Navbar />
@@ -76,6 +124,46 @@
             </div>
         </div>
     </div>
+{:else if currentQuestion !== null}
+    <div class="min-h-screen bg-gray-50 py-8">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-semibold text-gray-800">Question {currentQuestion + 1} of {questions.length}</h2>
+                        <p class="text-lg mt-4">{questions[currentQuestion].question}</p>
+                    </div>
+
+                    <div class="space-y-4 mb-8">
+                        {#each questions[currentQuestion].options as option, index}
+                            <button
+                                class="w-full p-4 text-left border rounded-lg transition-colors {getOptionClass(index)}"
+                                on:click={() => selectAnswer(index)}
+                            >
+                                {option}
+                            </button>
+                        {/each}
+                    </div>
+
+                    <div class="flex justify-between">
+                        <button
+                            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                            on:click={previousQuestion}
+                            disabled={currentQuestion === 0}
+                        >
+                            Previous
+                        </button>
+                        <button
+                            class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                            on:click={nextQuestion}
+                        >
+                            {currentQuestion === questions.length - 1 ? 'Finish' : 'Next'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 {:else}
     <div class="min-h-screen bg-gray-50 py-8">
         <div class="container mx-auto px-4">
@@ -108,6 +196,24 @@
                         {/each}
                     </div>
                 {/if}
+            </div>
+        </div>
+    </div>
+{:else}
+    <!-- Results -->
+    <div class="min-h-screen bg-gray-50 py-8">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+                    <h2 class="text-3xl font-bold text-indigo-600 mb-4">Quiz Results</h2>
+                    <p class="text-xl mb-6">You scored {score} out of {questions.length}</p>
+                    <button
+                        class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                        on:click={restartQuiz}
+                    >
+                        Try Again
+                    </button>
+                </div>
             </div>
         </div>
     </div>
