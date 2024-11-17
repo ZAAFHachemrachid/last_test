@@ -3,32 +3,35 @@
     import { quizStore } from '$lib/stores/quizStore';
     import type { QuizQuestion, UserAnswers } from '$lib/types/quiz';
 
-    let currentQuestion: number = 0;
+    let currentQuestion: number | null = 0;
     let userAnswers: UserAnswers = [];
-    let showResults: boolean = false;
     let questions: QuizQuestion[] = [];
 
     quizStore.subscribe((value: QuizQuestion[]) => {
         questions = value;
-        userAnswers = new Array(questions.length).fill(null);
+        if (userAnswers.length !== questions.length) {
+            userAnswers = new Array(questions.length).fill(null);
+        }
     });
 
     function selectAnswer(optionIndex: number): void {
-        if (!showResults) {
+        if (currentQuestion !== null) {
             userAnswers[currentQuestion] = optionIndex;
         }
     }
 
     function nextQuestion(): void {
-        if (currentQuestion < questions.length - 1) {
-            currentQuestion++;
-        } else {
-            showResults = true;
+        if (currentQuestion !== null) {
+            if (currentQuestion < questions.length - 1) {
+                currentQuestion++;
+            } else {
+                currentQuestion = null; // This will show results
+            }
         }
     }
 
     function previousQuestion(): void {
-        if (currentQuestion > 0) {
+        if (currentQuestion !== null && currentQuestion > 0) {
             currentQuestion--;
         }
     }
@@ -36,24 +39,20 @@
     function restartQuiz(): void {
         currentQuestion = 0;
         userAnswers = new Array(questions.length).fill(null);
-        showResults = false;
     }
 
     function getOptionClass(index: number): string {
+        if (currentQuestion === null) return '';
+        
         if (userAnswers[currentQuestion] === index) {
             return 'bg-indigo-100 border-indigo-300';
-        } else if (showResults && index === questions[currentQuestion].correct) {
-            return 'bg-green-100 border-green-300';
-        } else if (showResults && index !== questions[currentQuestion].correct && userAnswers[currentQuestion] !== null) {
-            return 'bg-red-100 border-red-300';
         } else {
             return 'border-gray-200 hover:bg-indigo-50 hover:border-indigo-300';
         }
     }
 
-    $: score = userAnswers.reduce((acc: number, answer: number | null, index: number) => 
+    $: score = userAnswers.reduce((acc, answer, index) => 
         answer === questions[index]?.correct ? acc + 1 : acc, 0);
-    $: progress = ((currentQuestion + 1) / questions.length) * 100;
 </script>
 
 <Navbar />
@@ -101,6 +100,7 @@
                     <button
                         class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                         on:click={nextQuestion}
+                        disabled={userAnswers[currentQuestion] === null}
                     >
                         {currentQuestion === questions.length - 1 ? 'إنهاء الاختبار' : 'التالي'}
                     </button>
