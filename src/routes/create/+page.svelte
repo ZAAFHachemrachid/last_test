@@ -1,6 +1,6 @@
 <script lang="ts">
     import Navbar from '$lib/components/Navbar.svelte';
-    import { addQuestion } from '$lib/stores/quizStore';
+    import { quizStore, addQuiz } from '$lib/stores/quizStore';
     import { goto } from '$app/navigation';
     import type { QuizQuestion } from '$lib/types/quiz';
 
@@ -31,22 +31,22 @@
     function handleSubmit(): void {
         // Validate question
         if (!newQuestion.question.trim()) {
-            errorMessage = "الرجاء إدخال السؤال";
+            errorMessage = "Please enter a question";
             return;
         }
 
         // Validate options
         if (newQuestion.options.some(option => !option.trim())) {
-            errorMessage = "الرجاء ملء جميع الخيارات";
+            errorMessage = "Please fill in all options";
             return;
         }
 
-        // Add question
-        addQuestion({
+        // Add question to a new quiz
+        addQuiz([{
             question: newQuestion.question,
             options: [...newQuestion.options],
             correct: newQuestion.correct
-        });
+        }]);
 
         // Reset form
         newQuestion = {
@@ -55,7 +55,7 @@
             correct: 0
         };
 
-        successMessage = "تمت إضافة السؤال بنجاح!";
+        successMessage = "Question added successfully!";
         errorMessage = "";
 
         // Clear success message after 3 seconds
@@ -67,18 +67,18 @@
 
 <Navbar />
 
-<div class="container mx-auto px-4 py-8" dir="rtl">
+<div class="container mx-auto px-4 py-8">
     <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
-        <h1 class="text-3xl font-bold text-indigo-600 mb-6 text-right">إضافة سؤال جديد</h1>
+        <h1 class="text-3xl font-bold text-indigo-600 mb-6">Add New Question</h1>
 
         {#if successMessage}
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 text-right">
+            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
                 {successMessage}
             </div>
         {/if}
 
         {#if errorMessage}
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-right">
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                 {errorMessage}
             </div>
         {/if}
@@ -86,23 +86,22 @@
         <form on:submit|preventDefault={handleSubmit} class="space-y-6">
             <!-- Question Input -->
             <div>
-                <label for="question" class="block text-sm font-medium text-gray-700 mb-2 text-right">
-                    السؤال
+                <label for="question" class="block text-sm font-medium text-gray-700 mb-2">
+                    Question
                 </label>
                 <input
                     type="text"
                     id="question"
                     bind:value={newQuestion.question}
-                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-right"
-                    placeholder="أدخل سؤالك هنا"
-                    dir="rtl"
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Enter your question here"
                 />
             </div>
 
             <!-- Options -->
             <div class="space-y-4">
                 <div class="flex justify-between items-center">
-                    <label class="block text-sm font-medium text-gray-700 text-right">الخيارات ({newQuestion.options.length})</label>
+                    <div class="block text-sm font-medium text-gray-700">Options ({newQuestion.options.length})</div>
                     <div class="space-x-2">
                         <button 
                             type="button"
@@ -110,7 +109,7 @@
                             class="px-3 py-1 text-sm bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-colors {newQuestion.options.length <= 2 ? 'opacity-50 cursor-not-allowed' : ''}"
                             disabled={newQuestion.options.length <= 2}
                         >
-                            حذف خيار
+                            Remove Option
                         </button>
                         <button 
                             type="button"
@@ -118,7 +117,7 @@
                             class="px-3 py-1 text-sm bg-green-100 text-green-600 rounded-md hover:bg-green-200 transition-colors {newQuestion.options.length >= 6 ? 'opacity-50 cursor-not-allowed' : ''}"
                             disabled={newQuestion.options.length >= 6}
                         >
-                            إضافة خيار
+                            Add Option
                         </button>
                     </div>
                 </div>
@@ -126,21 +125,23 @@
                     <div class="flex items-center space-x-4">
                         <input
                             type="radio"
+                            id="option{i}"
                             name="correct"
                             value={i}
                             bind:group={newQuestion.correct}
                             class="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
                         />
-                        <input
-                            type="text"
-                            bind:value={newQuestion.options[i]}
-                            class="flex-1 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-right"
-                            placeholder="أدخل الخيار {i + 1}"
-                            dir="rtl"
-                        />
+                        <label for="option{i}" class="flex-1">
+                            <input
+                                type="text"
+                                bind:value={newQuestion.options[i]}
+                                class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Enter option {i + 1}"
+                            />
+                        </label>
                     </div>
                 {/each}
-                <p class="text-sm text-gray-500 text-right">اختر الإجابة الصحيحة عن طريق تحديد الدائرة بجانب الخيار</p>
+                <p class="text-sm text-gray-500">Select the correct answer by clicking the radio button next to the option</p>
             </div>
 
             <div class="flex justify-end">
@@ -148,14 +149,14 @@
                     type="submit"
                     class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                 >
-                    إضافة السؤال
+                    Add Question
                 </button>
                 <button
                     type="button"
                     on:click={() => goto('/quiz')}
                     class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                 >
-                    أخذ الاختبار
+                    Take Quiz
                 </button>
             </div>
         </form>
